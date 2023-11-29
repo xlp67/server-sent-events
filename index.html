@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSE Client</title>
+    <style>
+        #message-box {
+            width: 50%;
+            height: 100px;
+            resize: none;
+            overflow-x: scroll;
+            overflow-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+
+<div id="sse-container">
+    <textarea id="message-box" readonly></textarea>
+</div>
+
+<script>
+    const eventSource = new EventSource("/partial-response");
+
+    eventSource.onmessage = function (event) {
+        const messageBox = document.getElementById("message-box");
+        messageBox.value += event.data + '\n';
+        messageBox.scrollTop = messageBox.scrollHeight;
+    };
+
+    eventSource.onerror = function (error) {
+        console.error("EventSource failed:", error);
+        eventSource.close();
+    };
+    setTimeout(() => {
+        eventSource.close();
+    }, 30000);
+</script>
+
+</body>
+</html>
