@@ -11,31 +11,46 @@
             resize: none;
             overflow-x: scroll;
             overflow-wrap: break-word;
+            user-select: none;
         }
     </style>
 </head>
 <body>
 
 <div id="sse-container">
-    <textarea id="message-box" readonly></textarea>
+    <textarea id="message-box" readonly onselectstart="return false;" onmousedown="return false;"></textarea>
 </div>
 
 <script>
     const eventSource = new EventSource("/partial-response");
 
-    eventSource.onmessage = function (event) {
+    function appendMessage(message) {
         const messageBox = document.getElementById("message-box");
-        messageBox.value += event.data + '\n';
+        messageBox.value += message + ' ';
         messageBox.scrollTop = messageBox.scrollHeight;
+    }
+
+    let messageCounter = 0;
+
+    eventSource.onmessage = function (event) {
+        const serverDelay = 0.5;
+
+        messageCounter++;
+
+        const delay = messageCounter * serverDelay * 1000;
+
+        setTimeout(function () {
+            appendMessage(event.data);
+        }, delay);
     };
 
     eventSource.onerror = function (error) {
         console.error("EventSource failed:", error);
+        setTimeout(function () {
+            appendMessage(event.data);
+        }, 20000);
         eventSource.close();
     };
-    setTimeout(() => {
-        eventSource.close();
-    }, 30000);
 </script>
 
 </body>
