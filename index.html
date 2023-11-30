@@ -23,24 +23,36 @@
 
 <script>
     const eventSource = new EventSource("/partial-response");
-
-    function appendMessage(message) {
+    async function appendMessage(message) {
         const messageBox = document.getElementById("message-box");
-        messageBox.value += message + '';
-        messageBox.scrollTop = messageBox.scrollHeight;
+        const decodedMessage = hexToString(message);
+
+        async function typeCharacters(line) {
+            for (const char of line) {
+                messageBox.value += char;
+                messageBox.scrollTop = messageBox.scrollHeight;
+                await sleep(50);
+            }
+            messageBox.value += '\n';
+            messageBox.scrollTop = messageBox.scrollHeight;
+        }
+        const lines = decodedMessage.split('\n');
+        for (const line of lines) {
+            await typeCharacters(line);
+        }
     }
 
     let messageCounter = 0;
 
     eventSource.onmessage = function (event) {
-        const serverDelay = 0.5;
+        const serverDelay = 0.1;
 
         messageCounter++;
 
         const delay = messageCounter * serverDelay * 1000;
 
-        setTimeout(function () {
-            appendMessage(event.data);
+        setTimeout(async function () {
+            await appendMessage(event.data);
         }, delay);
     };
 
@@ -51,6 +63,28 @@
         }, 20000);
         eventSource.close();
     };
+
+    function hexToString(hex) {
+    let str = '';
+    for (let i = 0; i < hex.length; i += 2) {
+        const charCode = parseInt(hex.substr(i, 2), 16);
+        str += String.fromCharCode(charCode);
+    }
+
+    // Decode the UTF-8 encoded string
+    try {
+        return new TextDecoder('utf-8').decode(new Uint8Array(Buffer.from(str, '')));
+    } catch (error) {
+        console.error('Error decoding UTF-8:', error);
+        return str;
+    }
+}
+
+
+
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
 </script>
 
 </body>
