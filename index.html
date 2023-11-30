@@ -3,88 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SSE Client</title>
-    <style>
-        #message-box {
-            width: 50%;
-            height: 100px;
-            resize: none;
-            overflow-x: scroll;
-            overflow-wrap: break-word;
-            user-select: none;
-        }
-    </style>
+    <title>EventSource Example</title>
 </head>
 <body>
+    <textarea id="message-box" rows="10" cols="50"></textarea>
 
-<div id="sse-container">
-    <textarea id="message-box" readonly onselectstart="return false;" onmousedown="return false;"></textarea>
-</div>
+    <script>
+        const eventSource = new EventSource("/partial-response");
 
-<script>
-    const eventSource = new EventSource("/partial-response");
-    async function appendMessage(message) {
-        const messageBox = document.getElementById("message-box");
-        const decodedMessage = hexToString(message);
+        async function appendMessage(message) {
+            const messageBox = document.getElementById("message-box");
 
-        async function typeCharacters(line) {
-            for (const char of line) {
-                messageBox.value += char;
-                messageBox.scrollTop = messageBox.scrollHeight;
-                await sleep(50);
+            async function hexToAscii(hex) {
+                const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+                const text = await new TextDecoder('utf-8').decode(bytes);
+                return text;
             }
+            
+            async function typeCharacters(line) {
+                messageBox.value += await hexToAscii(line);
+                messageBox.scrollTop = messageBox.scrollHeight;
+            }
+
+            const lines = message.split('\n');
+            for (const line of lines) {
+                await typeCharacters(line);
+            }
+
             messageBox.value += '\n';
             messageBox.scrollTop = messageBox.scrollHeight;
         }
-        const lines = decodedMessage.split('\n');
-        for (const line of lines) {
-            await typeCharacters(line);
-        }
-    }
 
-    let messageCounter = 0;
+        let messageCounter = 0;
 
-    eventSource.onmessage = function (event) {
-        const serverDelay = 0.1;
+        eventSource.onmessage = function (event) {
+            const serverDelay = 0.1;
+            messageCounter++;
+            const delay = messageCounter * serverDelay * 1000;
 
-        messageCounter++;
+            setTimeout(async function () {
+                await appendMessage(event.data);
+            }, delay);
+        };
 
-        const delay = messageCounter * serverDelay * 1000;
-        setTimeout(async function () {
-            await appendMessage(event.data);
-        }, delay);
-    };
-
-    eventSource.onerror = function (error) {
-        console.error("EventSource failed:", error);
-        setTimeout(function () {
-            appendMessage(event.data);
-        }, 20000);
-        eventSource.close();
-    };
-
-    function hexToString(hex) {
-    let str = '';
-    for (let i = 0; i < hex.length; i += 2) {
-        const charCode = parseInt(hex.substr(i, 2), 16);
-        str += String.fromCharCode(charCode);
-    }
-
-    // Decode the UTF-8 encoded string
-    try {
-        return new TextDecoder('utf-8').decode(new Uint8Array(Buffer.from(str, '')));
-    } catch (error) {
-        console.error('Error decoding UTF-8:', error);
-        return str;
-    }
-}
-
-
-
-    function sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-</script>
-
+        eventSource.onerror = function (error) {
+            console.error("EventSource failed:", error);
+            setTimeout(function () {
+                appendMessage(error.message); 
+            }, 20000);
+            eventSource.close();
+        };
+    </script>
 </body>
 </html>
