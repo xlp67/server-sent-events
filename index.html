@@ -9,58 +9,68 @@
     <textarea id="message-box" rows="20" cols="100"></textarea>
     <script>
         const eventSource = new EventSource("/partial-response");
-
+        const messageQueue = [];
+        let processing = false;
+        let messageCounter = 0;
+    
         async function appendMessage(message) {
-        const messageBox = document.getElementById("message-box");
-        
-
-        async function hexToAscii(hex) {
-        const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
-        const text = await new TextDecoder('utf-8').decode(bytes);
-        return text;
-        }
-        
-        async function typeCharacters(line) {
-        const messageBox = document.getElementById("message-box");
-        const chars = await hexToAscii(line);
-        // messageBox.value += chars
-        for (let i = 0; i < chars.length; i++) {
-            messageBox.value += chars[i];
+            const messageBox = document.getElementById("message-box");
+            async function hexToAscii(hex) {
+                const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+                const text = await new TextDecoder('utf-8').decode(bytes);
+                return text;
+            }
+            async function typeCharacters(line) {
+                const chars = await hexToAscii(line);
+                for (let i = 0; i < chars.length; i++) {
+                    messageBox.value += chars[i];
+                    messageBox.scrollTop = messageBox.scrollHeight;
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
+            }
+    
+            const lines = message.split('\n');
+            for (const line of lines) {
+                await typeCharacters(line);
+            }
+            messageBox.value += '\n';
             messageBox.scrollTop = messageBox.scrollHeight;
-            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+    
+        async function appendMessageToQueue(message) {
+            messageQueue.push(message);
+            if (!processing) {
+                processMessageQueue();
             }
         }
-
-            
-
-        const lines = message.split('\n');
-        for (const line of lines) {
-            await typeCharacters(line);
+    
+        async function processMessageQueue() {
+            processing = true;
+            while (messageQueue.length > 0) {
+                const message = messageQueue.shift();
+                await appendMessage(message);
+            }
+            processing = false;
         }
-
-        messageBox.value += '\n';
-        messageBox.scrollTop = messageBox.scrollHeight;
-    }
-
-    let messageCounter = 0;
-
-    eventSource.onmessage = function (event) {
-        const serverDelay = 0.01;
-        messageCounter++;
-        const delay = messageCounter * serverDelay * 1000;
-
-    setTimeout(async function () {
-        await appendMessage(event.data);
-        }, delay);
-    };
-
-    eventSource.onerror = function (error) {
-        console.error("EventSource failed:", error);
-        setTimeout(function () {
-            appendMessage(error.message); 
-        }, 20000);
-        eventSource.close();
-    };
+    
+        eventSource.onmessage = function (event) {
+            const serverDelay = 0.01;
+            messageCounter++;
+            const delay = messageCounter * serverDelay * 1000;
+    
+            setTimeout(async function () {
+                await appendMessageToQueue(event.data);
+            }, delay);
+        };
+    
+        eventSource.onerror = function (error) {
+            console.error("EventSource failed:", error);
+            setTimeout(function () {
+                appendMessage(error.message);
+            }, 20000);
+            eventSource.close();
+        };
     </script>
+    
 </body>
 </html>
