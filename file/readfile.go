@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 )
-
 func ReadFile(path string) (map[int][]byte) {
 	fileData := make(map[int][]byte)
 	file, err := os.ReadFile(path)

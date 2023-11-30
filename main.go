@@ -6,9 +6,6 @@ import (
 "net/http"
 "sse/sse"
 )
-
-
-
 func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/partial-response", func(w http.ResponseWriter, r *http.Request){
@@ -20,6 +17,4 @@ func main() {
 		tpl.Execute(w, nil)
 	})
 	http.ListenAndServe(":8080", mux)
-
-
 }	

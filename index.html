@@ -50,7 +50,6 @@
         messageCounter++;
 
         const delay = messageCounter * serverDelay * 1000;
-
         setTimeout(async function () {
             await appendMessage(event.data);
         }, delay);

@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"sse/file"
 )
-
 func ResponseSSE(filePath string, w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("Accept") != "text/event-stream" {
 		http.Error(w, "O cliente não suporta SSE", http.StatusBadRequest)
