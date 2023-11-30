@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 )
-func ReadFile(path string) (map[int][]byte) {
-	fileData := make(map[int][]byte)
+func ReadFile(path string) (map[int]string) {
+	fileData := make(map[int]string)
 	file, err := os.ReadFile(path)
 	if err != nil {
 		log.Fatal(err)
@@ -14,7 +14,7 @@ func ReadFile(path string) (map[int][]byte) {
 	lines := strings.Split(string(file), "\n")
 
 	for i, line := range lines {
-		fileData[i] = []byte(line)
+		fileData[i] = line
 	}
 	return fileData
 }
